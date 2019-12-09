@@ -1,6 +1,6 @@
 {
   "name": "maptastic",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "dist/maptastic.js",
   "license": "SEE LICENSE IN license.txt",
   "author": "ben purdy (https://github.com/benpurdy)",
@@ -11,11 +11,10 @@
   "files": [
     "license.txt",
     "src/**/*",
-    "dist/**/*",
-    "lib/**/*"
+    "dist/**/*"
   ],
   "scripts": {
-    "build": "cross-env BABEL_ENV=es rollup -c -i ./src/maptastic.js -o dist/maptastic.js",
+    "build": "rollup --config -o dist/maptastic.js",
     "clean": "rimraf dist",
     "prepublish": "npm run build"
   },
@@ -23,7 +22,6 @@
     "@babel/core": "^7.7.5",
     "@babel/plugin-transform-modules-commonjs": "^7.7.5",
     "@babel/preset-env": "^7.7.6",
-    "cross-env": "^6.0.3",
     "rimraf": "^2.6.2",
     "rollup": "^1.27.9",
     "rollup-plugin-babel": "^4.3.3",
