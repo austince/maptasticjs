@@ -10,7 +10,8 @@ export default {
   external: ['numeric'],
   output: {
     name: pkg.name,
-    banner: `/*! ${pkg.name} ${(new Date().toISOString())} */`,
+    sourcemap: true,
+    banner: `/* test ${pkg.name} ${(new Date().toISOString())} */`,
     format: 'umd',
     globals: { numeric: 'numeric' }
     ,
