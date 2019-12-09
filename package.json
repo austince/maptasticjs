@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/maptastic.js",
   "license": "SEE LICENSE IN license.txt",
-  "author":  "ben purdy (https://github.com/benpurdy)",
+  "author": "ben purdy (https://github.com/benpurdy)",
   "contributors": [
     "florian segginger (https://github.com/floriansegginger)",
     "austin ce <austin.cawley@gmail.com>(https://github.com/austince)"
@@ -15,20 +15,20 @@
     "lib/**/*"
   ],
   "scripts": {
-    "build": "grunt",
+    "build": "cross-env BABEL_ENV=es rollup -c -i ./src/maptastic.js -o dist/maptastic.js",
     "clean": "rimraf dist",
     "prepublish": "npm run build"
   },
   "devDependencies": {
-    "babel-core": "^6.26.0",
-    "babel-preset-env": "^1.6.1",
-    "grunt": "~0.4.5",
-    "grunt-babel": "^7.0.0",
-    "grunt-browserify": "^5.2.0",
-    "grunt-cli": "^1.2.0",
-    "grunt-contrib-uglify": "~0.5.0",
-    "grunt-contrib-watch": "~0.6.1",
-    "rimraf": "^2.6.2"
+    "@babel/core": "^7.7.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.7.5",
+    "@babel/preset-env": "^7.7.6",
+    "cross-env": "^6.0.3",
+    "rimraf": "^2.6.2",
+    "rollup": "^1.27.9",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-uglify": "^6.0.3"
   },
   "dependencies": {
     "numeric": "^1.2.6"

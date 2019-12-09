@@ -6,11 +6,12 @@ Javascript/CSS projection mapping utility.  Put your internets on things!
 ![maptastic animation](https://glowbox.github.io/maptasticjs/images/maptastic.gif "Maptastic JS")
 
 __note__:
-The original author has been busy and non-responsive so this fork will serve as a way to keep the project updated. If the author reaches out to me, I will be more than happy to go back to the [original repo](https://github.com/globox/maptasticjs).
+The original author has been busy and non-responsive so this fork will serve as a way to keep the project updated.
+If the author reaches out to me, I will be more than happy to go back to the [original repo](https://github.com/glowbox/maptasticjs).
 
 ### Usage:
 
-When you include `maptastic.min.js` in your page, a new class named `Maptastic` is defined. The first step is to instantiate Maptastic, which can be done a couple of different ways depending on your needs. For most simple cases, this only requires a _single line of code_. 
+When you include `maptastic.js` in your page, a new class `maptastic.Maptastic` is defined. The first step is to instantiate Maptastic, which can be done a couple of different ways depending on your needs. For most simple cases, this only requires a _single line of code_. 
 
 [SHOW ME THE DEMO](https://glowbox.github.io/maptasticjs/example/index.html)
 ```html
@@ -27,19 +28,21 @@ When you include `maptastic.min.js` in your page, a new class named `Maptastic` 
 	<body>
 
 		<div id="so-simple">This is pretty simple.</div>
-
-		<script src="maptastic.min.js"></script>
+        
+        <!-- The only dependency is on `numeric`, which can be loaded from cdnjs -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.js"></script>
+		<script src="./dist/maptastic.js"></script>
 		<script>
-			Maptastic("so-simple");
+			new maptastic.Maptastic("so-simple");
 		</script>
 
 	</body>
 	</html>
 ```
 
-For more advanced needs, `Mapstastic` can also be imported as a CommonJS module.
+For more advanced needs, `Mapstastic` can also be imported as an ES2015 module.
 ```javascript
-const Maptastic = require('maptastic');
+import { Maptastic } from 'maptastic';
 const map = new Maptastic("so-simple");
 ```
 
