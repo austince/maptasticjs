@@ -1,6 +1,6 @@
 {
   "name": "maptastic",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "main": "dist/maptastic.js",
   "license": "SEE LICENSE IN license.txt",
   "author": "ben purdy (https://github.com/benpurdy)",
@@ -15,8 +15,7 @@
   ],
   "scripts": {
     "build": "rollup --config -o dist/maptastic.js",
-    "clean": "rimraf dist",
-    "prepublish": "npm run build"
+    "clean": "rimraf dist"
   },
   "devDependencies": {
     "@babel/core": "^7.7.5",

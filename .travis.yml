@@ -5,9 +5,11 @@ install:
 - npm install
 scripts:
 - npm run build
+
 deploy:
   provider: npm
   email: austin.cawley@gmail.com
+  skip_cleanup: true
   api_key:
     secure: CwZMa5MUPKm+Qgtb8BRYHQpbHLkkHW1KAUffGc94a4NMhS0rXDadbdAd7g3xXVYxHWmpjfkP2G3Fjd9i750/UKfyoAaR8hLJMlyH2MZ3w0iIlTt+t8quDPYcvoiy0abufn6nbD5BZ5lFQrV1LsbKxgINjq2+PA0mgq7HbyK4aiZDNqvG1A4Ci/xUe9ior9nnPwW/ZNps1YdjHXd1LpikFZciJ99+I00FOYxupTN+UxoUbACtxxYHqqng+NBGH6+b6LOFmkJJPoUp00OuQfF1Rm2Z1Ii0ipyQRzXlu1FVLlbMo4fUA5E6lH9/8MPHQGcJBdc2L1hPllkEfbDorYWjs+9H13evUegA8CHRq8dB/1gnPHGxuafBqJI2ulnWxVBXNC3yly6Z3oyfGS/oharQqftn4zP2omIfoGyp57Cj72QUUuaUw1sdYqJi93gadL5enJY0qC5t3kQRGM/R6vz0GFbKAdIuEvAVO8KG7QNdmzI2SQa51egSsJ7gnoTsrH56FLKHuyjVwdLHiBvM3+fKOqBMJ8WZLeD1v2tiugqvwr5lrCs1IlEp6mkOBX21CE516yw6ldvV70Uxa5Snx7bexMiC8ApOMtAlxlNIfiyJpJrGAC4PHp92t41h0kpguUk5I2j5j51ej5Jsu3hNh/QiJEx1su0t4qQKoYqnH6r7oJ4=
   on:
