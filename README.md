@@ -1,8 +1,6 @@
 # maptastic
 
-=========
-
-Javascript/CSS projection mapping utility.  Put your internets on things!
+Javascript/CSS projection mapping utility with zero dependencies.  Put your internets on things!
 
 ![maptastic animation](https://glowbox.github.io/maptasticjs/images/maptastic.gif "Maptastic JS")
 
@@ -31,8 +29,6 @@ When you include `maptastic.js` in your page, a new class `maptastic.Maptastic` 
 
         <div id="so-simple">This is pretty simple.</div>
 
-        <!-- The only dependency is on `numeric`, which can be loaded from cdnjs -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.js"></script>
         <script src="./dist/maptastic.js"></script>
         <script>
             new maptastic.Maptastic("so-simple");
