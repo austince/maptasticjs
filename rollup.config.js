@@ -7,13 +7,12 @@ const pkg = JSON.parse(readFileSync('./package.json').toString());
 
 export default {
   input: 'src/maptastic.js',
-  external: ['numeric'],
+  external: [],
   output: {
     name: pkg.name,
     sourcemap: true,
-    banner: `/* test ${pkg.name} ${(new Date().toISOString())} */`,
-    format: 'umd',
-    globals: { numeric: 'numeric' }
+    banner: `/* ${pkg.name} ${(new Date().toISOString())} */`,
+    format: 'umd'
     ,
   },
   plugins: [
