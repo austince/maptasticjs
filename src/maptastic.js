@@ -1,4 +1,4 @@
-import { solve } from 'numeric';
+import solve from './solve';
 
 /**
  * @typedef {Object} Config
