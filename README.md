@@ -1,4 +1,5 @@
-maptastic
+# maptastic
+
 =========
 
 Javascript/CSS projection mapping utility.  Put your internets on things!
@@ -9,49 +10,52 @@ __note__:
 The original author has been busy and non-responsive so this fork will serve as a way to keep the project updated.
 If the author reaches out to me, I will be more than happy to go back to the [original repo](https://github.com/glowbox/maptasticjs).
 
-### Usage:
+## Usage
 
-When you include `maptastic.js` in your page, a new class `maptastic.Maptastic` is defined. The first step is to instantiate Maptastic, which can be done a couple of different ways depending on your needs. For most simple cases, this only requires a _single line of code_. 
+When you include `maptastic.js` in your page, a new class `maptastic.Maptastic` is defined. The first step is to instantiate Maptastic, which can be done a couple of different ways depending on your needs. For most simple cases, this only requires a _single line of code_.
 
 [SHOW ME THE DEMO](https://glowbox.github.io/maptasticjs/example/index.html)
-```html
-	<html>
-	<head>
-		<style>
-			#so-simple {
-				width: 300px;
-				height: 300px;
-				background: green;
-			}
-		</style>
-	</head>
-	<body>
 
-		<div id="so-simple">This is pretty simple.</div>
-        
+```html
+    <html>
+    <head>
+        <style>
+            #so-simple {
+                width: 300px;
+                height: 300px;
+                background: green;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div id="so-simple">This is pretty simple.</div>
+
         <!-- The only dependency is on `numeric`, which can be loaded from cdnjs -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.js"></script>
-		<script src="./dist/maptastic.js"></script>
-		<script>
-			new maptastic.Maptastic("so-simple");
-		</script>
+        <script src="./dist/maptastic.js"></script>
+        <script>
+            new maptastic.Maptastic("so-simple");
+        </script>
 
-	</body>
-	</html>
+    </body>
+    </html>
 ```
 
 For more advanced needs, `Mapstastic` can also be imported as an ES2015 module.
+
 ```javascript
 import { Maptastic } from 'maptastic';
 const map = new Maptastic("so-simple");
 ```
 
 ## Controls
+
 Since the idea is to have a projector aimed all crazy-like, the controls are all keyboard and mouse based since any UI would either get in the way, or would be impossible to see in most cases anyway.
 
 `SHIFT` + `Space` Toggle edit mode
 
-#### While In Edit Mode
+### While In Edit Mode
 
 `click` or `drag` select and move quads/corner points
 
@@ -79,10 +83,9 @@ Since the idea is to have a projector aimed all crazy-like, the controls are all
 
 `'v'` Flip selected layer vertically
 
+## How about that code
 
-## How about that code?
-
-### Constructor:
+### Constructor
 
 The constructor can be used in two different ways depending on how you would like to integrate with Maptastic.
 
@@ -90,23 +93,26 @@ The constructor can be used in two different ways depending on how you would lik
 
 Specify a list of HTML elements, element IDs, or a mix of both. These elements will all be set up as Maptastic layers and will be configurable in edit mode.
 
-	var element2 = document.getElementById("element-id2");
-	
-	Maptastic("element-id1", element2, ...);
+```javascript
+    const element2 = document.getElementById("element-id2");
 
+    new mapstastic.Maptastic("element-id1", element2, /* ... */);
+```
 
 #### Option 2 - Advanced Configuration
 
 For more advanced useage, specify a configuration object. Available configuration properties are defined below.
+
 ```javascript
-	var configObject = {
-		autoSave: false,
-		autoLoad: false,
-		onchange: myChangeHandler,
-		layers: ["element-id1", "element-id2"]
-	};
-	var maptastic = Maptastic(configObject);
+    const configObject = {
+        autoSave: false,
+        autoLoad: false,
+        onchange: myChangeHandler,
+        layers: ["element-id1", "element-id2"]
+    };
+    const map = new mapstastic.Maptastic(configObject);
 ```
+
 ##### Configuration options
 
 `layers` Array, default *empty*. Identical to Option 1 above, an array of IDs or HTML elements to be used as Maptastic layers.
@@ -121,7 +127,6 @@ For more advanced useage, specify a configuration object. Available configuratio
 
 `autoLoad` boolean, default *true*. Control the automatic loading of layer positions from local storage.
 
-
 ### Methods
 
 In most cases, simply instantiating Maptastic with an element or two should be fine. However, if you are doing something more complicated, the Maptastic instance exposes several methods for controlling things at run time.
@@ -133,25 +138,26 @@ Returns an array of layer descriptor objects that represent the current mapping 
 #### setLayout( _layoutData_ )
 
 Sets the current mapping layout. The schema must match that returned from `getLayout` and is as follows:
+
 ```javascript
-	[
-	  {
-	    'id': 'some-element-id',
-		'sourcePoints': [
-	      [x1, y1],
-	      [x2, y2],
-	      [x3, y3],
-	      [x4, y4]
-	    ],
-	    'targetPoints': [
-	      [x1, y1],
-	      [x2, y2],
-	      [x3, y3],
-	      [x4, y4]
-	    ]
-	  },
-	  ...
-	]
+    [
+      {
+        'id': 'some-element-id',
+        'sourcePoints': [
+          [x1, y1],
+          [x2, y2],
+          [x3, y3],
+          [x4, y4]
+        ],
+        'targetPoints': [
+          [x1, y1],
+          [x2, y2],
+          [x3, y3],
+          [x4, y4]
+        ]
+      },
+      // ...
+    ]
 ```
 
 #### addLayer( _target_, _coordinates_ )
@@ -161,7 +167,6 @@ Add a new HTML element to be mapped.
 `target` required. HTML Element or a string representing an element ID.
 
 `coordinates` optional. An array of four two-dimensional arrays specifying the corner points. This is the same structure as the `targetPoints` array used in `getLayout` and `setLayout`
-
 
 #### setConfigEnabled( _enabled_ )
 
