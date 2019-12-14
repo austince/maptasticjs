@@ -1,301 +1,488 @@
 import { solve } from 'numeric';
 
+/**
+ * @typedef {Object} Config
+ * @property {boolean} labels
+ * @property {boolean} crosshairs
+ * @property {boolean} screenbounds
+ * @property {boolean} autoSave
+ * @property {Layout[]} layers
+ * @property {function(): void} onchange
+ */
 
-function Maptastic(config) {
+/**
+ * @typedef {(string|HTMLElement)} Target
+ */
 
-  var getProp = function (cfg, key, defaultVal) {
-    if (cfg && cfg.hasOwnProperty(key) && (cfg[key] !== null)) {
-      return cfg[key];
-    } else {
-      return defaultVal;
-    }
-  };
+/**
+ * @typedef {[number, number]} Point
+ */
 
-  var showLayerNames = getProp(config, 'labels', true);
-  var showCrosshairs = getProp(config, 'crosshairs', false);
-  var showScreenBounds = getProp(config, 'screenbounds', false);
-  var autoSave = getProp(config, 'autoSave', true);
-  var autoLoad = getProp(config, 'autoLoad', true);
-  var layerList = getProp(config, 'layers', []);
-  var layoutChangeListener = getProp(config, 'onchange', function () {
-  });
-  var localStorageKey = 'maptastic.layers';
+/**
+ * @typedef {Object} Layout
+ * @property {string} id - ID of the layer element
+ * @property {Point[]} targetPoints
+ * @property {Point[]} sourcePoints
+ */
 
-  var canvas = null;
-  var context = null;
+/**
+ * @typedef {Object} Layer
+ * @property {Point[]} targetPoints
+ * @property {Point[]} sourcePoints
+ * @property {boolean} visible
+ * @property {HTMLElement} element
+ * @property {number} width
+ * @property {number} height 
+ */
 
-  var layers = [];
+const has = Object.prototype.hasOwnProperty;
 
-  var configActive = false;
-
-  var dragging = false;
-  var dragOffset = [];
-
-  var selectedLayer = null;
-  var selectedPoint = null;
-  var selectionRadius = 20;
-  var hoveringPoint = null;
-  var hoveringLayer = null;
-  var dragOperation = 'move';
-  var isLayerSoloed = false;
-
-  var mousePosition = [];
-  var mouseDelta = [];
-  var mouseDownPoint = [];
-
-  // Compute linear distance.
-  var distanceTo = function (x1, y1, x2, y2) {
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-  };
-
-  var pointInTriangle = function (point, a, b, c) {
-    var s = a[1] * c[0] - a[0] * c[1] + (c[1] - a[1]) * point[0] + (a[0] - c[0]) * point[1];
-    var t = a[0] * b[1] - a[1] * b[0] + (a[1] - b[1]) * point[0] + (b[0] - a[0]) * point[1];
-
-    if ((s < 0) != (t < 0)) {
-      return false;
-    }
-
-    var A = -b[1] * c[0] + a[1] * (c[0] - b[0]) + a[0] * (b[1] - c[1]) + b[0] * c[1];
-    if (A < 0.0) {
-      s = -s;
-      t = -t;
-      A = -A;
-    }
-
-    return s > 0 && t > 0 && (s + t) < A;
-  };
-
-  // determine if a point is inside a layer quad.
-  var pointInLayer = function (point, layer) {
-    var a = pointInTriangle(point, layer.targetPoints[0], layer.targetPoints[1], layer.targetPoints[2]);
-    var b = pointInTriangle(point, layer.targetPoints[3], layer.targetPoints[0], layer.targetPoints[2]);
-    return a || b;
-  };
-
-  var notifyChangeListener = function () {
-    layoutChangeListener();
-  };
-
-  var draw = function () {
-    if (!configActive) {
-      return;
-    }
-
-    context.strokeStyle = 'red';
-    context.lineWidth = 2;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    for (var i = 0; i < layers.length; i++) {
-
-      if (layers[i].visible) {
-        layers[i].element.style.visibility = 'visible';
-
-        // Draw layer rectangles.
-        context.beginPath();
-        if (layers[i] === hoveringLayer) {
-          context.strokeStyle = 'red';
-        } else if (layers[i] === selectedLayer) {
-          context.strokeStyle = 'red';
-        } else {
-          context.strokeStyle = 'white';
-        }
-        context.moveTo(layers[i].targetPoints[0][0], layers[i].targetPoints[0][1]);
-        for (var p = 0; p < layers[i].targetPoints.length; p++) {
-          context.lineTo(layers[i].targetPoints[p][0], layers[i].targetPoints[p][1]);
-        }
-        context.lineTo(layers[i].targetPoints[3][0], layers[i].targetPoints[3][1]);
-        context.closePath();
-        context.stroke();
-
-        // Draw corner points.
-        var centerPoint = [0, 0];
-        for (var p = 0; p < layers[i].targetPoints.length; p++) {
-
-          if (layers[i].targetPoints[p] === hoveringPoint) {
-            context.strokeStyle = 'red';
-          } else if (layers[i].targetPoints[p] === selectedPoint) {
-            context.strokeStyle = 'red';
-          } else {
-            context.strokeStyle = 'white';
-          }
-
-          centerPoint[0] += layers[i].targetPoints[p][0];
-          centerPoint[1] += layers[i].targetPoints[p][1];
-
-          context.beginPath();
-          context.arc(layers[i].targetPoints[p][0], layers[i].targetPoints[p][1],
-            selectionRadius / 2, 0, 2 * Math.PI, false);
-          context.stroke();
-        }
-
-        // Find the average of the corner locations for an approximate center.
-        centerPoint[0] /= 4;
-        centerPoint[1] /= 4;
+/**
+ * Get an object's property or a default if not defined.
+ *
+ * @template T
+ * @param {*} obj 
+ * @param {string} key 
+ * @param {T} defaultVal 
+ * @returns {T | *} either the default value or the object's property
+ */
+function getProp(obj, key, defaultVal) {
+  if (obj && has.call(obj, key) && (obj[key] !== null)) {
+    return obj[key];
+  } else {
+    return defaultVal;
+  }
+}
 
 
-        if (showLayerNames) {
-          // Draw the element ID in the center of the quad for reference.
-          var label = layers[i].element.id.toUpperCase();
-          context.font = '16px sans-serif';
-          context.textAlign = 'center';
-          var metrics = context.measureText(label);
-          var size = [metrics.width + 8, 16 + 16];
-          context.fillStyle = 'white';
-          context.fillRect(centerPoint[0] - size[0] / 2, centerPoint[1] - size[1] + 8, size[0], size[1]);
-          context.fillStyle = 'black';
-          context.fillText(label, centerPoint[0], centerPoint[1]);
-        }
-      } else {
-        layers[i].element.style.visibility = 'hidden';
+/**
+ * Compute linear distance.
+ *
+ * @param {number} x1 
+ * @param {number} y1 
+ * @param {number} x2 
+ * @param {number} y2 
+ * @returns {number}
+ */
+function distanceTo(x1, y1, x2, y2) {
+  return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
+
+/**
+ * Determine whether a {@link Point} falls within a triangle.
+ * 
+ * @param {Point} point 
+ * @param {Point} a 
+ * @param {Point} b 
+ * @param {Point} c
+ * @returns {boolean} 
+ */
+function pointInTriangle(point, a, b, c) {
+  let s = a[1] * c[0] - a[0] * c[1] + (c[1] - a[1]) * point[0] + (a[0] - c[0]) * point[1];
+  let t = a[0] * b[1] - a[1] * b[0] + (a[1] - b[1]) * point[0] + (b[0] - a[0]) * point[1];
+
+  if ((s < 0) != (t < 0)) {
+    return false;
+  }
+
+  let A = -b[1] * c[0] + a[1] * (c[0] - b[0]) + a[0] * (b[1] - c[1]) + b[0] * c[1];
+  if (A < 0.0) {
+    s = -s;
+    t = -t;
+    A = -A;
+  }
+
+  return s > 0 && t > 0 && (s + t) < A;
+}
+
+/**
+ * Swap two points in a given list of points. Mutates `layerPoints`.
+ *
+ * @param {Point[]} layerPoints 
+ * @param {number} index1 
+ * @param {number} index2 
+ */
+function swapLayerPoints(layerPoints, index1, index2) {
+  const tx = layerPoints[index1][0];
+  const ty = layerPoints[index1][1];
+  layerPoints[index1][0] = layerPoints[index2][0];
+  layerPoints[index1][1] = layerPoints[index2][1];
+  layerPoints[index2][0] = tx;
+  layerPoints[index2][1] = ty;
+}
+
+/**
+ * Determine if a point is inside a layer quad.
+ * 
+ * @param {Point} point 
+ * @param {Layer} layer 
+ */
+function pointInLayer(point, layer) {
+  const a = pointInTriangle(point, layer.targetPoints[0], layer.targetPoints[1], layer.targetPoints[2]);
+  const b = pointInTriangle(point, layer.targetPoints[3], layer.targetPoints[0], layer.targetPoints[2]);
+  return a || b;
+}
+
+/**
+ * Rotate a {@link Layout}. Mutates `layer`.
+ *
+ * @param {Layer} layer 
+ * @param {number} angle 
+ */
+function rotateLayer(layer, angle) {
+  const s = Math.sin(angle);
+  const c = Math.cos(angle);
+
+  const centerPoint = [0, 0];
+  for (let p = 0; p < layer.targetPoints.length; p++) {
+    centerPoint[0] += layer.targetPoints[p][0];
+    centerPoint[1] += layer.targetPoints[p][1];
+  }
+
+  centerPoint[0] /= 4;
+  centerPoint[1] /= 4;
+
+  for (let p = 0; p < layer.targetPoints.length; p++) {
+    const px = layer.targetPoints[p][0] - centerPoint[0];
+    const py = layer.targetPoints[p][1] - centerPoint[1];
+
+    layer.targetPoints[p][0] = (px * c) - (py * s) + centerPoint[0];
+    layer.targetPoints[p][1] = (px * s) + (py * c) + centerPoint[1];
+  }
+}
+
+/**
+ * Scale a {@link Layer}. Mutates `layer`.
+ * 
+ * @param {Layer} layer 
+ * @param {number} scale 
+ */
+function scaleLayer(layer, scale) {
+  const centerPoint = [0, 0];
+  for (let p = 0; p < layer.targetPoints.length; p++) {
+    centerPoint[0] += layer.targetPoints[p][0];
+    centerPoint[1] += layer.targetPoints[p][1];
+  }
+
+  centerPoint[0] /= 4;
+  centerPoint[1] /= 4;
+
+  for (let p = 0; p < layer.targetPoints.length; p++) {
+    let px = layer.targetPoints[p][0] - centerPoint[0];
+    let py = layer.targetPoints[p][1] - centerPoint[1];
+
+    layer.targetPoints[p][0] = (px * scale) + centerPoint[0];
+    layer.targetPoints[p][1] = (py * scale) + centerPoint[1];
+  }
+}
+
+/**
+ * Clone a list of points.
+ * 
+ * @param {Point[]} points 
+ * @returns {Point[]} a new list.
+ */
+function clonePoints(points) {
+  const clone = [];
+  for (let p = 0; p < points.length; p++) {
+    clone.push(points[p].slice(0, 2));
+  }
+  return clone;
+}
+
+class Maptastic {
+  /**
+   * @param {Config|Target} configOrTarget
+   * @param {...Target} [targets]
+   */
+  constructor(configOrTarget, ...targets) {
+    /** @type {HTMLCanvasElement} */
+    this.canvas = null;
+    /** @type {CanvasRenderingContext2D} */
+    this.context = null;
+
+    /** @type {Layer[]} */
+    this.layers = [];
+
+    this.configActive = false;
+
+    this.dragging = false;
+    /** @type {Point} */
+    this.dragOffset = [0, 0];
+
+    this.selectedLayer = null;
+    this.selectedPoint = null;
+    this.selectionRadius = 20;
+    this.hoveringPoint = null;
+    this.hoveringLayer = null;
+    this.dragOperation = 'move';
+    this.isLayerSoloed = false;
+
+    /** @type {Point} */
+    this.mousePosition = [0, 0];
+    /** @type {Point} */
+    this.mouseDelta = [0, 0];
+    /** @type {Point} */
+    this.mouseDownPoint = [];
+
+    this.showLayerNames = getProp(configOrTarget, 'labels', true);
+    this.showCrosshairs = getProp(configOrTarget, 'crosshairs', false);
+    this.showScreenBounds = getProp(configOrTarget, 'screenbounds', false);
+    this.autoSave = getProp(configOrTarget, 'autoSave', true);
+    this.layoutChangeListener = getProp(configOrTarget, 'onchange', () => { });
+    this.localStorageKey = 'maptastic.layers';
+
+    const layerList = getProp(configOrTarget, 'layers', []);
+    // if the config was just an element or string, interpret it as a layer to add.
+    const potentialLayerTargets = layerList.concat(targets, [configOrTarget]);
+
+    for (var i = 0; i < potentialLayerTargets.length; i++) {
+      if ((potentialLayerTargets[i] instanceof HTMLElement) || (typeof (potentialLayerTargets[i]) === 'string')) {
+        this.addLayer(potentialLayerTargets[i]);
       }
     }
 
-    // Draw mouse crosshairs
-    if (showCrosshairs) {
-      context.strokeStyle = 'yellow';
-      context.lineWidth = 1;
-
-      context.beginPath();
-
-      context.moveTo(mousePosition[0], 0);
-      context.lineTo(mousePosition[0], canvas.height);
-
-      context.moveTo(0, mousePosition[1]);
-      context.lineTo(canvas.width, mousePosition[1]);
-
-      context.stroke();
+    const autoLoad = getProp(configOrTarget, 'autoLoad', true);
+    if (autoLoad) {
+      this.loadSettings();
     }
 
-    if (showScreenBounds) {
+    this.init();
+  }
 
-      context.fillStyle = 'black';
-      context.lineWidth = 4;
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      context.strokeStyle = '#909090';
-      context.beginPath();
-      var stepX = canvas.width / 10;
-      var stepY = canvas.height / 10;
-
-      for (var i = 0; i < 10; i++) {
-        context.moveTo(i * stepX, 0);
-        context.lineTo(i * stepX, canvas.height);
-
-        context.moveTo(0, i * stepY);
-        context.lineTo(canvas.width, i * stepY);
-      }
-      context.stroke();
-
-      context.strokeStyle = 'white';
-      context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
-
-      var fontSize = Math.round(stepY * 0.6);
-      context.font = fontSize + 'px mono,sans-serif';
-      context.fillRect(stepX * 2 + 2, stepY * 3 + 2, canvas.width - stepX * 4 - 4, canvas.height - stepY * 6 - 4);
-      context.fillStyle = 'white';
-      context.fontSize = 20;
-      context.fillText(canvas.width + ' x ' + canvas.height, canvas.width / 2, canvas.height / 2 + (fontSize * 0.75));
-      context.fillText('display size', canvas.width / 2, canvas.height / 2 - (fontSize * 0.75));
-    }
-  };
-
-  var swapLayerPoints = function (layerPoints, index1, index2) {
-    var tx = layerPoints[index1][0];
-    var ty = layerPoints[index1][1];
-    layerPoints[index1][0] = layerPoints[index2][0];
-    layerPoints[index1][1] = layerPoints[index2][1];
-    layerPoints[index2][0] = tx;
-    layerPoints[index2][1] = ty;
-  };
-
-  var init = function () {
-    canvas = document.createElement('canvas');
+  /**
+   * Set up event listeners, canvas, and context.
+   * 
+   * @private
+   */
+  init() {
+    const canvas = document.createElement('canvas');
 
     canvas.style.display = 'none';
     canvas.style.position = 'fixed';
     canvas.style.top = '0px';
     canvas.style.left = '0px';
     canvas.style.zIndex = '1000000';
+    this.canvas = canvas;
 
-    context = canvas.getContext('2d');
+    this.context = canvas.getContext('2d');
 
     document.body.appendChild(canvas);
 
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', (event) => this.resize());
 
     // UI events
-    window.addEventListener('mousemove', mouseMove);
-    window.addEventListener('mouseup', mouseUp);
-    window.addEventListener('mousedown', mouseDown);
-    window.addEventListener('keydown', keyDown);
+    window.addEventListener('mousemove', (event) => this.mouseMove(event));
+    window.addEventListener('mouseup', (event) => this.mouseUp(event));
+    window.addEventListener('mousedown', (event) => this.mouseDown(event));
+    window.addEventListener('keydown', (event) => this.keyDown(event));
 
-    resize();
-  };
+    this.resize();
+  }
 
-  var rotateLayer = function (layer, angle) {
-    var s = Math.sin(angle);
-    var c = Math.cos(angle);
+  /**
+   * @private
+   */
+  notifyChangeListener() {
+    this.layoutChangeListener();
+  }
 
-    var centerPoint = [0, 0];
-    for (var p = 0; p < layer.targetPoints.length; p++) {
-      centerPoint[0] += layer.targetPoints[p][0];
-      centerPoint[1] += layer.targetPoints[p][1];
+  /**
+   * @private
+   */
+  resize() {
+    const { innerWidth, innerHeight } = window;
+    this.canvas.width = innerWidth;
+    this.canvas.height = innerHeight;
+
+    this.draw();
+  }
+
+  /**
+   * @private
+   */
+  draw() {
+    if (!this.configActive) {
+      return;
     }
 
-    centerPoint[0] /= 4;
-    centerPoint[1] /= 4;
+    this.context.strokeStyle = 'red';
+    this.context.lineWidth = 2;
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    for (var p = 0; p < layer.targetPoints.length; p++) {
-      var px = layer.targetPoints[p][0] - centerPoint[0];
-      var py = layer.targetPoints[p][1] - centerPoint[1];
+    for (let i = 0; i < this.layers.length; i++) {
 
-      layer.targetPoints[p][0] = (px * c) - (py * s) + centerPoint[0];
-      layer.targetPoints[p][1] = (px * s) + (py * c) + centerPoint[1];
+      if (this.layers[i].visible) {
+        this.layers[i].element.style.visibility = 'visible';
+
+        // Draw layer rectangles.
+        this.context.beginPath();
+        if (this.layers[i] === this.hoveringLayer) {
+          this.context.strokeStyle = 'red';
+        } else if (this.layers[i] === this.selectedLayer) {
+          this.context.strokeStyle = 'red';
+        } else {
+          this.context.strokeStyle = 'white';
+        }
+        this.context.moveTo(this.layers[i].targetPoints[0][0], this.layers[i].targetPoints[0][1]);
+        for (let p = 0; p < this.layers[i].targetPoints.length; p++) {
+          this.context.lineTo(this.layers[i].targetPoints[p][0], this.layers[i].targetPoints[p][1]);
+        }
+        this.context.lineTo(this.layers[i].targetPoints[3][0], this.layers[i].targetPoints[3][1]);
+        this.context.closePath();
+        this.context.stroke();
+
+        // Draw corner points.
+        const centerPoint = [0, 0];
+        for (let p = 0; p < this.layers[i].targetPoints.length; p++) {
+
+          if (this.layers[i].targetPoints[p] === this.hoveringPoint) {
+            this.context.strokeStyle = 'red';
+          } else if (this.layers[i].targetPoints[p] === this.selectedPoint) {
+            this.context.strokeStyle = 'red';
+          } else {
+            this.context.strokeStyle = 'white';
+          }
+
+          centerPoint[0] += this.layers[i].targetPoints[p][0];
+          centerPoint[1] += this.layers[i].targetPoints[p][1];
+
+          this.context.beginPath();
+          this.context.arc(
+            this.layers[i].targetPoints[p][0],
+            this.layers[i].targetPoints[p][1],
+            this.selectionRadius / 2,
+            0,
+            2 * Math.PI,
+            false
+          );
+          this.context.stroke();
+        }
+
+        // Find the average of the corner locations for an approximate center.
+        centerPoint[0] /= 4;
+        centerPoint[1] /= 4;
+
+        if (this.showLayerNames) {
+          // Draw the element ID in the center of the quad for reference.
+          const label = this.layers[i].element.id.toUpperCase();
+          this.context.font = '16px sans-serif';
+          this.context.textAlign = 'center';
+          const metrics = this.context.measureText(label);
+          const size = [metrics.width + 8, 16 + 16];
+          this.context.fillStyle = 'white';
+          this.context.fillRect(centerPoint[0] - size[0] / 2, centerPoint[1] - size[1] + 8, size[0], size[1]);
+          this.context.fillStyle = 'black';
+          this.context.fillText(label, centerPoint[0], centerPoint[1]);
+        }
+      } else {
+        this.layers[i].element.style.visibility = 'hidden';
+      }
     }
-  };
 
-  var scaleLayer = function (layer, scale) {
+    // Draw mouse crosshairs
+    if (this.showCrosshairs) {
+      this.context.strokeStyle = 'yellow';
+      this.context.lineWidth = 1;
 
-    var centerPoint = [0, 0];
-    for (var p = 0; p < layer.targetPoints.length; p++) {
-      centerPoint[0] += layer.targetPoints[p][0];
-      centerPoint[1] += layer.targetPoints[p][1];
+      this.context.beginPath();
+
+      this.context.moveTo(this.mousePosition[0], 0);
+      this.context.lineTo(this.mousePosition[0], this.canvas.height);
+
+      this.context.moveTo(0, this.mousePosition[1]);
+      this.context.lineTo(this.canvas.width, this.mousePosition[1]);
+
+      this.context.stroke();
     }
 
-    centerPoint[0] /= 4;
-    centerPoint[1] /= 4;
+    if (this.showScreenBounds) {
 
-    for (var p = 0; p < layer.targetPoints.length; p++) {
-      var px = layer.targetPoints[p][0] - centerPoint[0];
-      var py = layer.targetPoints[p][1] - centerPoint[1];
+      this.context.fillStyle = 'black';
+      this.context.lineWidth = 4;
+      this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-      layer.targetPoints[p][0] = (px * scale) + centerPoint[0];
-      layer.targetPoints[p][1] = (py * scale) + centerPoint[1];
+      this.context.strokeStyle = '#909090';
+      this.context.beginPath();
+      const stepX = this.canvas.width / 10;
+      const stepY = this.canvas.height / 10;
+
+      for (let i = 0; i < 10; i++) {
+        this.context.moveTo(i * stepX, 0);
+        this.context.lineTo(i * stepX, this.canvas.height);
+
+        this.context.moveTo(0, i * stepY);
+        this.context.lineTo(this.canvas.width, i * stepY);
+      }
+      this.context.stroke();
+
+      this.context.strokeStyle = 'white';
+      this.context.strokeRect(2, 2, this.canvas.width - 4, this.canvas.height - 4);
+
+      const fontSize = Math.round(stepY * 0.6);
+      this.context.font = fontSize + 'px mono,sans-serif';
+      this.context.fillRect(stepX * 2 + 2, stepY * 3 + 2, this.canvas.width - stepX * 4 - 4, this.canvas.height - stepY * 6 - 4);
+      this.context.fillStyle = 'white';
+      this.context.fontSize = 20;
+      this.context.fillText(this.canvas.width + ' x ' + this.canvas.height, this.canvas.width / 2, this.canvas.height / 2 + (fontSize * 0.75));
+      this.context.fillText('display size', this.canvas.width / 2, this.canvas.height / 2 - (fontSize * 0.75));
     }
-  };
+  }
 
-  var keyDown = function (event) {
-    if (!configActive) {
+  updateTransform() {
+    // TODO: no reduce
+    const transform = ['', '-webkit-', '-moz-', '-ms-', '-o-'].reduce((p, v) => {
+      return v + 'transform' in document.body.style ? v : p;
+    }) + 'transform';
+    for (let l = 0; l < this.layers.length; l++) {
+
+      let a = [];
+      let b = [];
+      for (let i = 0, n = this.layers[l].sourcePoints.length; i < n; ++i) {
+        const s = this.layers[l].sourcePoints[i], t = this.layers[l].targetPoints[i];
+        a.push([s[0], s[1], 1, 0, 0, 0, -s[0] * t[0], -s[1] * t[0]]), b.push(t[0]);
+        a.push([0, 0, 0, s[0], s[1], 1, -s[0] * t[1], -s[1] * t[1]]), b.push(t[1]);
+      }
+
+      // TODO: remove dependency on numeric
+      const X = solve(a, b, true);
+      const matrix = [
+        X[0], X[3], 0, X[6],
+        X[1], X[4], 0, X[7],
+        0, 0, 1, 0,
+        X[2], X[5], 0, 1
+      ];
+
+      this.layers[l].element.style[transform] = 'matrix3d(' + matrix.join(',') + ')';
+      this.layers[l].element.style[transform + '-origin'] = '0px 0px 0px';
+    }
+  }
+
+  /**
+   * @private
+   * @param {KeyboardEvent} event 
+   */
+  keyDown(event) {
+    if (!this.configActive) {
       if (event.keyCode == 32 && event.shiftKey) {
-        setConfigEnabled(true);
+        this.setConfigEnabled(true);
         return;
       } else {
         return;
       }
     }
 
-    var key = event.keyCode;
+    const key = event.keyCode;
 
-    var increment = event.shiftKey ? 10 : 1;
-    var dirty = false;
-    var delta = [0, 0];
+    const increment = event.shiftKey ? 10 : 1;
+    let dirty = false;
+    const delta = [0, 0];
 
     switch (key) {
 
       case 32: // spacebar
         if (event.shiftKey) {
-          setConfigEnabled(false);
+          this.setConfigEnabled(false);
           return;
         }
         break;
@@ -317,78 +504,78 @@ function Maptastic(config) {
         break;
 
       case 67: // c key, toggle crosshairs
-        showCrosshairs = !showCrosshairs;
+        this.showCrosshairs = !this.showCrosshairs;
         dirty = true;
         break;
 
       case 83: // s key, solo/unsolo quads
-        if (!isLayerSoloed) {
+        if (!this.isLayerSoloed) {
 
-          if (selectedLayer != null) {
-            for (var i = 0; i < layers.length; i++) {
-              layers[i].visible = false;
+          if (this.selectedLayer != null) {
+            for (let i = 0; i < this.layers.length; i++) {
+              this.layers[i].visible = false;
             }
-            selectedLayer.visible = true;
+            this.selectedLayer.visible = true;
             dirty = true;
-            isLayerSoloed = true;
+            this.isLayerSoloed = true;
           }
         } else {
-          for (var i = 0; i < layers.length; i++) {
-            layers[i].visible = true;
+          for (let i = 0; i < this.layers.length; i++) {
+            this.layers[i].visible = true;
           }
-          isLayerSoloed = false;
+          this.isLayerSoloed = false;
           dirty = true;
 
         }
         break;
 
       case 66: // b key, toggle projector bounds rectangle.
-        showScreenBounds = !showScreenBounds;
-        draw();
+        this.showScreenBounds = !this.showScreenBounds;
+        this.draw();
         break;
 
       case 72: // h key, flip horizontal.
-        if (selectedLayer) {
-          swapLayerPoints(selectedLayer.sourcePoints, 0, 1);
-          swapLayerPoints(selectedLayer.sourcePoints, 3, 2);
-          updateTransform();
-          draw();
+        if (this.selectedLayer) {
+          swapLayerPoints(this.selectedLayer.sourcePoints, 0, 1);
+          swapLayerPoints(this.selectedLayer.sourcePoints, 3, 2);
+          this.updateTransform();
+          this.draw();
         }
         break;
 
       case 86: // v key, flip vertical.
-        if (selectedLayer) {
-          swapLayerPoints(selectedLayer.sourcePoints, 0, 3);
-          swapLayerPoints(selectedLayer.sourcePoints, 1, 2);
-          updateTransform();
-          draw();
+        if (this.selectedLayer) {
+          swapLayerPoints(this.selectedLayer.sourcePoints, 0, 3);
+          swapLayerPoints(this.selectedLayer.sourcePoints, 1, 2);
+          this.updateTransform();
+          this.draw();
         }
         break;
 
       case 82: // r key, rotate 90 degrees.
-        if (selectedLayer) {
-          rotateLayer(selectedLayer, Math.PI / 2);
+        if (this.selectedLayer) {
+          rotateLayer(this.selectedLayer, Math.PI / 2);
           //rotateLayer(selectedLayer, 0.002);
-          updateTransform();
-          draw();
+          this.updateTransform();
+          this.draw();
         }
         break;
     }
 
     // if a layer or point is selected, add the delta amounts (set above via arrow keys)
-    if (!showScreenBounds) {
-      if (selectedPoint) {
-        selectedPoint[0] += delta[0];
-        selectedPoint[1] += delta[1];
+    if (!this.showScreenBounds) {
+      if (this.selectedPoint) {
+        this.selectedPoint[0] += delta[0];
+        this.selectedPoint[1] += delta[1];
         dirty = true;
-      } else if (selectedLayer) {
+      } else if (this.selectedLayer) {
         if (event.altKey == true) {
-          rotateLayer(selectedLayer, delta[0] * 0.01);
-          scaleLayer(selectedLayer, (delta[1] * -0.005) + 1.0);
+          rotateLayer(this.selectedLayer, delta[0] * 0.01);
+          scaleLayer(this.selectedLayer, (delta[1] * -0.005) + 1.0);
         } else {
-          for (var i = 0; i < selectedLayer.targetPoints.length; i++) {
-            selectedLayer.targetPoints[i][0] += delta[0];
-            selectedLayer.targetPoints[i][1] += delta[1];
+          for (let i = 0; i < this.selectedLayer.targetPoints.length; i++) {
+            this.selectedLayer.targetPoints[i][0] += delta[0];
+            this.selectedLayer.targetPoints[i][1] += delta[1];
           }
         }
         dirty = true;
@@ -397,173 +584,190 @@ function Maptastic(config) {
 
     // update the transform and redraw if needed
     if (dirty) {
-      updateTransform();
-      draw();
-      if (autoSave) {
-        saveSettings();
+      this.updateTransform();
+      this.draw();
+      if (this.autoSave) {
+        this.saveSettings();
       }
-      notifyChangeListener();
+      this.notifyChangeListener();
     }
-  };
+  }
 
-  var mouseMove = function (event) {
-    if (!configActive) {
+  /**
+   * @private
+   * @param {MouseEvent} event
+   */
+  mouseMove(event) {
+    if (!this.configActive) {
       return;
     }
 
     event.preventDefault();
 
-    mouseDelta[0] = event.clientX - mousePosition[0];
-    mouseDelta[1] = event.clientY - mousePosition[1];
+    this.mouseDelta[0] = event.clientX - this.mousePosition[0];
+    this.mouseDelta[1] = event.clientY - this.mousePosition[1];
 
-    mousePosition[0] = event.clientX;
-    mousePosition[1] = event.clientY;
+    this.mousePosition[0] = event.clientX;
+    this.mousePosition[1] = event.clientY;
 
-    if (dragging) {
+    if (this.dragging) {
 
-      var scale = event.shiftKey ? 0.1 : 1;
+      const scale = event.shiftKey ? 0.1 : 1;
 
-      if (selectedPoint) {
-        selectedPoint[0] += mouseDelta[0] * scale;
-        selectedPoint[1] += mouseDelta[1] * scale;
-      } else if (selectedLayer) {
+      if (this.selectedPoint) {
+        this.selectedPoint[0] += this.mouseDelta[0] * scale;
+        this.selectedPoint[1] += this.mouseDelta[1] * scale;
+      } else if (this.selectedLayer) {
 
         // Alt-drag to rotate and scale
         if (event.altKey == true) {
-          rotateLayer(selectedLayer, mouseDelta[0] * (0.01 * scale));
-          scaleLayer(selectedLayer, (mouseDelta[1] * (-0.005 * scale)) + 1.0);
+          rotateLayer(this.selectedLayer, this.mouseDelta[0] * (0.01 * scale));
+          scaleLayer(this.selectedLayer, (this.mouseDelta[1] * (-0.005 * scale)) + 1.0);
         } else {
-          for (var i = 0; i < selectedLayer.targetPoints.length; i++) {
-            selectedLayer.targetPoints[i][0] += mouseDelta[0] * scale;
-            selectedLayer.targetPoints[i][1] += mouseDelta[1] * scale;
+          for (let i = 0; i < this.selectedLayer.targetPoints.length; i++) {
+            this.selectedLayer.targetPoints[i][0] += this.mouseDelta[0] * scale;
+            this.selectedLayer.targetPoints[i][1] += this.mouseDelta[1] * scale;
           }
         }
       }
 
-      updateTransform();
-      if (autoSave) {
-        saveSettings();
+      this.updateTransform();
+      if (this.autoSave) {
+        this.saveSettings();
       }
-      draw();
-      notifyChangeListener();
-
+      this.draw();
+      this.notifyChangeListener();
     } else {
-      var dirty = false;
+      let dirty = false;
 
-      canvas.style.cursor = 'default';
-      var mouseX = event.clientX;
-      var mouseY = event.clientY;
+      this.canvas.style.cursor = 'default';
+      const mouseX = event.clientX;
+      const mouseY = event.clientY;
 
-      var previousState = (hoveringPoint != null);
-      var previousLayer = (hoveringLayer != null);
+      const previousState = (this.hoveringPoint != null);
+      const previousLayer = (this.hoveringLayer != null);
 
-      hoveringPoint = null;
+      this.hoveringPoint = null;
 
-      for (var i = 0; i < layers.length; i++) {
-        var layer = layers[i];
+      for (let i = 0; i < this.layers.length; i++) {
+        let layer = this.layers[i];
         if (layer.visible) {
-          for (var p = 0; p < layer.targetPoints.length; p++) {
-            var point = layer.targetPoints[p];
-            if (distanceTo(point[0], point[1], mouseX, mouseY) < selectionRadius) {
-              canvas.style.cursor = 'pointer';
-              hoveringPoint = point;
+          for (let p = 0; p < layer.targetPoints.length; p++) {
+            let point = layer.targetPoints[p];
+            if (distanceTo(point[0], point[1], mouseX, mouseY) < this.selectionRadius) {
+              this.canvas.style.cursor = 'pointer';
+              this.hoveringPoint = point;
               break;
             }
           }
         }
       }
 
-      hoveringLayer = null;
-      for (var i = 0; i < layers.length; i++) {
-        if (layers[i].visible && pointInLayer(mousePosition, layers[i])) {
-          hoveringLayer = layers[i];
+      this.hoveringLayer = null;
+      for (let i = 0; i < this.layers.length; i++) {
+        if (this.layers[i].visible && pointInLayer(this.mousePosition, this.layers[i])) {
+          this.hoveringLayer = this.layers[i];
           break;
         }
       }
 
-      if (showCrosshairs ||
-        (previousState != (hoveringPoint != null)) ||
-        (previousLayer != (hoveringLayer != null))
+      if (this.showCrosshairs ||
+        (previousState != (this.hoveringPoint != null)) ||
+        (previousLayer != (this.hoveringLayer != null))
       ) {
-        draw();
+        this.draw();
       }
     }
-  };
+  }
 
-  var mouseUp = function (event) {
-    if (!configActive) {
+  /**
+   * @private
+   * @param {MouseEvent} event 
+   */
+  mouseUp(event) {
+    if (!this.configActive) {
       return;
     }
     event.preventDefault();
 
-    dragging = false;
-  };
+    this.dragging = false;
+  }
 
-  var mouseDown = function (event) {
-    if (!configActive || showScreenBounds) {
+  /**
+   * @private
+   * @param {MouseEvent} event 
+   */
+  mouseDown(event) {
+    if (!this.configActive || this.showScreenBounds) {
       return;
     }
     event.preventDefault();
 
-    hoveringPoint = null;
+    this.hoveringPoint = null;
 
-    if (hoveringLayer) {
-      selectedLayer = hoveringLayer;
-      dragging = true;
+    if (this.hoveringLayer) {
+      this.selectedLayer = this.hoveringLayer;
+      this.dragging = true;
     } else {
-      selectedLayer = null;
+      this.selectedLayer = null;
     }
 
-    selectedPoint = null;
+    this.selectedPoint = null;
 
-    var mouseX = event.clientX;
-    var mouseY = event.clientY;
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
 
-    mouseDownPoint[0] = mouseX;
-    mouseDownPoint[1] = mouseY;
+    this.mouseDownPoint[0] = mouseX;
+    this.mouseDownPoint[1] = mouseY;
 
-    for (var i = 0; i < layers.length; i++) {
-      var layer = layers[i];
-      for (var p = 0; p < layer.targetPoints.length; p++) {
-        var point = layer.targetPoints[p];
-        if (distanceTo(point[0], point[1], mouseX, mouseY) < selectionRadius) {
-          selectedLayer = layer;
-          selectedPoint = point;
-          dragging = true;
-          dragOffset[0] = event.clientX - point[0];
-          dragOffset[1] = event.clientY - point[1];
-          //draw();
+    for (let i = 0; i < this.layers.length; i++) {
+      const layer = this.layers[i];
+      for (let p = 0; p < layer.targetPoints.length; p++) {
+        const point = layer.targetPoints[p];
+        if (distanceTo(point[0], point[1], mouseX, mouseY) < this.selectionRadius) {
+          this.selectedLayer = layer;
+          this.selectedPoint = point;
+          this.dragging = true;
+          this.dragOffset[0] = event.clientX - point[0];
+          this.dragOffset[1] = event.clientY - point[1];
+          //this.draw();
           break;
         }
       }
     }
-    draw();
+    this.draw();
     return false;
-  };
+  }
 
-  var addLayer = function (target, targetPoints) {
-
-    var element;
-
+  /**
+   * Add a {@link Layer} to an HTMLElement, either by id or by reference.
+   *
+   * @private
+   * @param {string|HTMLElement} target 
+   * @param {Point[]} [targetPoints] initial points for the layer
+   */
+  addLayer(target, targetPoints) {
+    /** @type {HTMLElement} */
+    let element;
     if (typeof (target) == 'string') {
       element = document.getElementById(target);
       if (!element) {
-        throw('Maptastic: No element found with id: ' + target);
+        throw new Error('Maptastic: No element found with id: ' + target);
       }
     } else if (target instanceof HTMLElement) {
       element = target;
     }
 
-    var exists = false;
-    for (var n = 0; n < layers.length; n++) {
-      if (layers[n].element.id == element.id) {
-        layers[n].targetPoints = clonePoints(layout[i].targetPoints);
+    let exists = false;
+    for (var n = 0; n < this.layers.length; n++) {
+      if (this.layers[n].element.id == element.id) {
+        this.layers[n].targetPoints = clonePoints(layout[i].targetPoints);
         exists = true;
       }
     }
 
-    var offsetX = element.offsetLeft;
-    var offsetY = element.offsetTop;
+    const offsetX = element.offsetLeft;
+    const offsetY = element.offsetTop;
 
     element.style.position = 'fixed';
     element.style.display = 'block';
@@ -572,7 +776,7 @@ function Maptastic(config) {
     element.style.padding = '0px';
     element.style.margin = '0px';
 
-    var layer = {
+    const layer = {
       'visible': true,
       'element': element,
       'width': element.clientWidth,
@@ -592,113 +796,97 @@ function Maptastic(config) {
       }
     }
 
-    layers.push(layer);
+    this.layers.push(layer);
 
-    updateTransform();
-  };
+    this.updateTransform();
+  }
 
-  var saveSettings = function () {
-    localStorage.setItem(localStorageKey, JSON.stringify(getLayout(layers)));
-  };
+  // Settings
+  /**
+   * Save current layout settings to local storage.
+   * 
+   * @private
+   */
+  saveSettings() {
+    localStorage.setItem(this.localStorageKey, JSON.stringify(this.getLayout()));
+  }
 
-  var loadSettings = function () {
-    if (localStorage.getItem(localStorageKey)) {
-      var data = JSON.parse(localStorage.getItem(localStorageKey));
+  /**
+   * Load layout settings from local storage.
+   * 
+   * @private
+   */
+  loadSettings() {
+    if (!localStorage.getItem(this.localStorageKey)) {
+      return;
+    }
+    const data = JSON.parse(localStorage.getItem(this.localStorageKey));
 
-      for (var i = 0; i < data.length; i++) {
-        for (var n = 0; n < layers.length; n++) {
-          if (layers[n].element.id == data[i].id) {
-            layers[n].targetPoints = clonePoints(data[i].targetPoints);
-            layers[n].sourcePoints = clonePoints(data[i].sourcePoints);
-          }
+    for (let i = 0; i < data.length; i++) {
+      for (let n = 0; n < this.layers.length; n++) {
+        if (this.layers[n].element.id == data[i].id) {
+          this.layers[n].targetPoints = clonePoints(data[i].targetPoints);
+          this.layers[n].sourcePoints = clonePoints(data[i].sourcePoints);
         }
       }
-      updateTransform();
     }
-  };
+    this.updateTransform();
+  }
 
-  var updateTransform = function () {
-    var transform = ['', '-webkit-', '-moz-', '-ms-', '-o-'].reduce(function (p, v) {
-      return v + 'transform' in document.body.style ? v : p;
-    }) + 'transform';
-    for (var l = 0; l < layers.length; l++) {
-
-      for (var a = [], b = [], i = 0, n = layers[l].sourcePoints.length; i < n; ++i) {
-        var s = layers[l].sourcePoints[i], t = layers[l].targetPoints[i];
-        a.push([s[0], s[1], 1, 0, 0, 0, -s[0] * t[0], -s[1] * t[0]]), b.push(t[0]);
-        a.push([0, 0, 0, s[0], s[1], 1, -s[0] * t[1], -s[1] * t[1]]), b.push(t[1]);
-      }
-
-      var X = solve(a, b, true);
-      var matrix = [
-        X[0], X[3], 0, X[6],
-        X[1], X[4], 0, X[7],
-        0, 0, 1, 0,
-        X[2], X[5], 0, 1
-      ];
-
-      layers[l].element.style[transform] = 'matrix3d(' + matrix.join(',') + ')';
-      layers[l].element.style[transform + '-origin'] = '0px 0px 0px';
-    }
-  };
-
-  var setConfigEnabled = function (enabled) {
-    configActive = enabled;
-    canvas.style.display = enabled ? 'block' : 'none';
+  /**
+   * @private
+   * @param {boolean} enabled
+   */
+  setConfigEnabled(enabled) {
+    this.configActive = enabled;
+    this.canvas.style.display = enabled ? 'block' : 'none';
 
     if (!enabled) {
-      selectedPoint = null;
-      selectedLayer = null;
-      dragging = false;
-      showScreenBounds = false;
+      this.selectedPoint = null;
+      this.selectedLayer = null;
+      this.dragging = false;
+      this.showScreenBounds = false;
     } else {
-      draw();
+      this.draw();
     }
-  };
+  }
 
-  var clonePoints = function (points) {
-    var clone = [];
-    for (var p = 0; p < points.length; p++) {
-      clone.push(points[p].slice(0, 2));
-    }
-    return clone;
-  };
-
-  var resize = function () {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    draw();
-  };
-
-  var getLayout = function () {
-    var layout = [];
-    for (var i = 0; i < layers.length; i++) {
+  /**
+   * @public
+   * @returns {Layout}
+   */
+  getLayout() {
+    const layout = []; // TODO: change to a map()
+    for (let i = 0; i < this.layers.length; i++) {
       layout.push({
-        'id': layers[i].element.id,
-        'targetPoints': clonePoints(layers[i].targetPoints),
-        'sourcePoints': clonePoints(layers[i].sourcePoints)
+        'id': this.layers[i].element.id,
+        'targetPoints': clonePoints(this.layers[i].targetPoints),
+        'sourcePoints': clonePoints(this.layers[i].sourcePoints)
       });
     }
     return layout;
-  };
+  }
 
-  var setLayout = function (layout) {
-    for (var i = 0; i < layout.length; i++) {
-      var exists = false;
-      for (var n = 0; n < layers.length; n++) {
-        if (layers[n].element.id == layout[i].id) {
+  /**
+   * @public
+   * @param {*} layout 
+   */
+  setLayout(layout) {
+    for (let i = 0; i < layout.length; i++) {
+      let exists = false;
+      for (let n = 0; n < this.layers.length; n++) {
+        if (this.layers[n].element.id == layout[i].id) {
           console.log('Setting points.');
-          layers[n].targetPoints = clonePoints(layout[i].targetPoints);
-          layers[n].sourcePoints = clonePoints(layout[i].sourcePoints);
+          this.layers[n].targetPoints = clonePoints(layout[i].targetPoints);
+          this.layers[n].sourcePoints = clonePoints(layout[i].sourcePoints);
           exists = true;
         }
       }
 
       if (!exists) {
-        var element = document.getElementById(layout[i].id);
+        const element = document.getElementById(layout[i].id);
         if (element) {
-          addLayer(element, layout[i].targetPoints);
+          this.addLayer(element, layout[i].targetPoints);
         } else {
           console.log('Maptastic: Can\'t find element: ' + layout[i].id);
         }
@@ -706,44 +894,9 @@ function Maptastic(config) {
         console.log('Maptastic: Element \'' + layout[i].id + '\' is already mapped.');
       }
     }
-    updateTransform();
-    draw();
-  };
-
-  init();
-
-  // if the config was just an element or string, interpret it as a layer to add.
-
-  for (var i = 0; i < layerList.length; i++) {
-    if ((layerList[i] instanceof HTMLElement) || (typeof (layerList[i]) === 'string')) {
-      addLayer(layerList[i]);
-    }
+    this.updateTransform();
+    this.draw();
   }
-
-  for (var i = 0; i < arguments.length; i++) {
-    if ((arguments[i] instanceof HTMLElement) || (typeof (arguments[i]) === 'string')) {
-      addLayer(arguments[i]);
-    }
-  }
-
-  if (autoLoad) {
-    loadSettings();
-  }
-
-  return {
-    'getLayout': function () {
-      return getLayout();
-    },
-    'setLayout': function (layout) {
-      setLayout(layout);
-    },
-    'setConfigEnabled': function (enabled) {
-      setConfigEnabled(enabled);
-    },
-    'addLayer': function (target, targetPoints) {
-      addLayer(target, targetPoints);
-    }
-  };
 }
 
 export { Maptastic };
