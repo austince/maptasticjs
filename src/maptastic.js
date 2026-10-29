@@ -472,6 +472,11 @@ class Maptastic {
       }
     }
 
+    // leave Cmd/Ctrl shortcuts (copy, paste, ...) to the page: c and v would otherwise toggle crosshairs / flip
+    if (event.metaKey || event.ctrlKey) {
+      return;
+    }
+
     const key = event.keyCode;
 
     const increment = event.shiftKey ? 10 : 1;
@@ -663,8 +668,9 @@ class Maptastic {
         }
       }
 
+      // later layers are drawn on top, so search from the end: overlapping layers select the topmost one
       this.hoveringLayer = null;
-      for (let i = 0; i < this.layers.length; i++) {
+      for (let i = this.layers.length - 1; i >= 0; i--) {
         if (this.layers[i].visible && pointInLayer(this.mousePosition, this.layers[i])) {
           this.hoveringLayer = this.layers[i];
           break;
@@ -758,11 +764,9 @@ class Maptastic {
       element = target;
     }
 
-    let exists = false;
-    for (var n = 0; n < this.layers.length; n++) {
+    for (let n = 0; n < this.layers.length; n++) {
       if (this.layers[n].element.id == element.id) {
-        this.layers[n].targetPoints = clonePoints(layout[i].targetPoints);
-        exists = true;
+        throw new Error('Maptastic: Layer already added: ' + element.id);
       }
     }
 
@@ -802,6 +806,27 @@ class Maptastic {
   }
 
   // Settings
+  /**
+   * Stop mapping an element that was added with addLayer. The element itself is left in the page.
+   *
+   * @param {HTMLElement} element
+   */
+  removeLayer(element) {
+    const index = this.layers.findIndex((layer) => layer.element === element);
+    if (index === -1) {
+      return;
+    }
+    this.layers.splice(index, 1);
+    if (this.selectedLayer && this.selectedLayer.element === element) {
+      this.selectedLayer = null;
+      this.selectedPoint = null;
+    }
+    if (this.hoveringLayer && this.hoveringLayer.element === element) {
+      this.hoveringLayer = null;
+    }
+    this.draw();
+  }
+
   /**
    * Save current layout settings to local storage.
    * 

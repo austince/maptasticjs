@@ -164,6 +164,10 @@ Add a new HTML element to be mapped.
 
 `coordinates` optional. An array of four two-dimensional arrays specifying the corner points. This is the same structure as the `targetPoints` array used in `getLayout` and `setLayout`
 
+#### removeLayer( _element_ )
+
+Stops mapping an element previously added with `addLayer`. The element is left in the page; remove it yourself if you no longer need it.
+
 #### setConfigEnabled( _enabled_ )
 
 Sets the current Configuration Mode state.
