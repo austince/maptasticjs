@@ -173,3 +173,24 @@ Stops mapping an element previously added with `addLayer`. The element is left i
 Sets the current Configuration Mode state.
 
 `enabled` boolean, required.
+
+## Development
+
+```bash
+# Node 24+ (see devEngines in package.json)
+npm ci
+npm test         # builds dist/ and runs the tests against it
+```
+
+`dist/` is committed; CI fails if it doesn't match a fresh `npm run build`.
+
+### Releasing
+
+Releases are staged to npm from GitHub Actions ([`publish.yml`](.github/workflows/publish.yml)) via
+[trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere,
+and go live only after a maintainer approves them ([staged publishing](https://docs.npmjs.com/staged-publishing)).
+
+1. Bump the version: `npm version <patch|minor|major>` (commits and creates the `vX.Y.Z` tag).
+2. Push the commit and tag: `git push --follow-tags`.
+3. Once the workflow finishes, approve the release with 2FA: `npm stage list maptastic`, then
+   `npm stage approve <stage-id>` (or use the Staged Packages tab on npmjs.com).
