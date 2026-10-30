@@ -177,7 +177,7 @@ Sets the current Configuration Mode state.
 ## Development
 
 ```bash
-nvm use          # Node version from .nvmrc
+# Node 24+ (see devEngines in package.json)
 npm ci
 npm test         # builds dist/ and runs the tests against it
 ```
