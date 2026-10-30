@@ -173,3 +173,21 @@ Stops mapping an element previously added with `addLayer`. The element is left i
 Sets the current Configuration Mode state.
 
 `enabled` boolean, required.
+
+## Development
+
+```bash
+nvm use          # Node version from .nvmrc
+npm ci
+npm test         # builds dist/ and runs the tests against it
+```
+
+`dist/` is committed; CI fails if it doesn't match a fresh `npm run build`.
+
+### Releasing
+
+Publishing to npm runs in GitHub Actions ([`publish.yml`](.github/workflows/publish.yml)) via
+[trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
+
+1. Bump the version: `npm version <patch|minor|major>` (commits and creates the `vX.Y.Z` tag).
+2. Push the commit and tag: `git push --follow-tags`.
