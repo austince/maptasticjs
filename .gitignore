@@ -35,3 +35,7 @@ typings/
 
 # dotenv environment variables file
 .env
+
+# Playwright
+test-results/
+playwright-report/

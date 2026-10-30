@@ -180,6 +180,10 @@ Sets the current Configuration Mode state.
 # Node 24+ (see devEngines in package.json)
 npm ci
 npm test         # builds dist/ and runs the tests against it
+
+# headless browser tests (Chromium, Firefox, WebKit) via Playwright
+npx playwright install
+npm run test:browser
 ```
 
 `dist/` is committed; CI fails if it doesn't match a fresh `npm run build`.
