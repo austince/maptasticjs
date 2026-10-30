@@ -14,18 +14,27 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "rollup --config -o dist/maptastic.js",
-    "clean": "rimraf dist"
+    "build": "rollup --config",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
-    "@babel/core": "^7.7.5",
-    "@babel/plugin-transform-modules-commonjs": "^7.7.5",
-    "@babel/preset-env": "^7.7.6",
-    "rimraf": "^2.6.2",
-    "rollup": "^1.27.9",
-    "rollup-plugin-babel": "^4.3.3",
-    "rollup-plugin-commonjs": "^10.1.0",
-    "rollup-plugin-uglify": "^6.0.4"
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "@rollup/plugin-babel": "^7.1.0",
+    "@rollup/plugin-terser": "^1.0.0",
+    "rimraf": "^6.1.3",
+    "rollup": "^4.64.7"
   },
-  "dependencies": {}
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/austince/maptasticjs.git"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24",
+      "onFail": "warn"
+    }
+  }
 }
