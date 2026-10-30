@@ -84,7 +84,7 @@ test('dragging inside overlapping layers moves the topmost one', async ({ page }
   await setup(page, { a: rect(100, 100, 200, 100), b: rect(150, 120, 200, 100) });
   await page.keyboard.press('Shift+Space');
 
-  // inside both, away from any corner and off the quads' diagonals (which count as outside)
+  // inside both, away from any corner
   await page.mouse.move(260, 160);
   await page.mouse.down();
   await page.mouse.move(260, 260, { steps: 5 });
@@ -92,6 +92,18 @@ test('dragging inside overlapping layers moves the topmost one', async ({ page }
 
   expectCorners(await corners(page, 'a'), rect(100, 100, 200, 100));
   expectCorners(await corners(page, 'b'), rect(150, 220, 200, 100));
+});
+
+test('dragging from the diagonal between opposite corners moves the layer', async ({ page }) => {
+  await setup(page, { a: rect(100, 100, 200, 100), b: rect(500, 400, 200, 100) });
+  await page.keyboard.press('Shift+Space');
+
+  await page.mouse.move(200, 150); // center of #a, on its diagonal
+  await page.mouse.down();
+  await page.mouse.move(250, 150, { steps: 5 });
+  await page.mouse.up();
+
+  expectCorners(await corners(page, 'a'), rect(150, 100, 200, 100));
 });
 
 test('arrow keys nudge the selected layer', async ({ page }) => {

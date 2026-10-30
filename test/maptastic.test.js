@@ -98,7 +98,21 @@ test('hovering overlapping layers picks the topmost one', () => {
   maptastic.addLayer('b', square(50, 50, 200));
   keyDown({ keyCode: 32, shiftKey: true });
 
-  mouseMove(150, 120); // inside both; off the quads' diagonals, which count as outside
+  mouseMove(150, 120); // inside both
 
   assert.equal(maptastic.hoveringLayer.element.id, 'b');
+});
+
+test('hovering the diagonal between opposite corners hovers the layer', () => {
+  const maptastic = new Maptastic({ autoLoad: false, autoSave: false });
+  maptastic.addLayer('a', square(0, 0, 200));
+  // reversed winding (counter-clockwise on screen) as well
+  maptastic.addLayer('b', square(300, 0, 200).reverse());
+  keyDown({ keyCode: 32, shiftKey: true });
+
+  mouseMove(100, 100);
+  assert.equal(maptastic.hoveringLayer && maptastic.hoveringLayer.element.id, 'a');
+
+  mouseMove(400, 100);
+  assert.equal(maptastic.hoveringLayer && maptastic.hoveringLayer.element.id, 'b');
 });
