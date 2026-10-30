@@ -1,6 +1,6 @@
 {
   "name": "maptastic",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "main": "dist/maptastic.js",
   "license": "SEE LICENSE IN license.txt",
   "author": "ben purdy (https://github.com/benpurdy)",
