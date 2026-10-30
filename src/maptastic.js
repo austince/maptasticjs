@@ -69,30 +69,32 @@ function distanceTo(x1, y1, x2, y2) {
 }
 
 /**
- * Determine whether a {@link Point} falls within a triangle.
- * 
- * @param {Point} point 
- * @param {Point} a 
- * @param {Point} b 
+ * Determine whether a {@link Point} falls within a triangle, edges included.
+ *
+ * @param {Point} point
+ * @param {Point} a
+ * @param {Point} b
  * @param {Point} c
- * @returns {boolean} 
+ * @returns {boolean}
  */
 function pointInTriangle(point, a, b, c) {
   let s = a[1] * c[0] - a[0] * c[1] + (c[1] - a[1]) * point[0] + (a[0] - c[0]) * point[1];
   let t = a[0] * b[1] - a[1] * b[0] + (a[1] - b[1]) * point[0] + (b[0] - a[0]) * point[1];
+  let A = -b[1] * c[0] + a[1] * (c[0] - b[0]) + a[0] * (b[1] - c[1]) + b[0] * c[1];
 
-  if ((s < 0) != (t < 0)) {
-    return false;
+  if (A == 0) {
+    return false; // degenerate triangle
   }
 
-  let A = -b[1] * c[0] + a[1] * (c[0] - b[0]) + a[0] * (b[1] - c[1]) + b[0] * c[1];
-  if (A < 0.0) {
+  // normalize the winding so the bounds below hold for either orientation
+  if (A < 0) {
     s = -s;
     t = -t;
     A = -A;
   }
 
-  return s > 0 && t > 0 && (s + t) < A;
+  // inclusive, so the diagonal shared by a layer's two triangles counts as inside
+  return s >= 0 && t >= 0 && (s + t) <= A;
 }
 
 /**
