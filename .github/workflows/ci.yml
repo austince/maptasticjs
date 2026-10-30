@@ -28,6 +28,11 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
+    # Browsers and their OS dependencies come preinstalled. The tag must match the
+    # @playwright/test version in package-lock.json (checked below).
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -35,5 +40,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Check the container matches @playwright/test
+        run: |
+          image="mcr.microsoft.com/playwright:v$(node -p 'require("@playwright/test/package.json").version')-noble"
+          if ! grep -qF "image: ${image}" .github/workflows/ci.yml; then
+            echo "::error::Update the browser job's container image to ${image}"
+            exit 1
+          fi
       - run: npm run test:browser
