@@ -186,8 +186,11 @@ npm test         # builds dist/ and runs the tests against it
 
 ### Releasing
 
-Publishing to npm runs in GitHub Actions ([`publish.yml`](.github/workflows/publish.yml)) via
-[trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
+Releases are staged to npm from GitHub Actions ([`publish.yml`](.github/workflows/publish.yml)) via
+[trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere,
+and go live only after a maintainer approves them ([staged publishing](https://docs.npmjs.com/staged-publishing)).
 
 1. Bump the version: `npm version <patch|minor|major>` (commits and creates the `vX.Y.Z` tag).
 2. Push the commit and tag: `git push --follow-tags`.
+3. Once the workflow finishes, approve the release with 2FA: `npm stage list maptastic`, then
+   `npm stage approve <stage-id>` (or use the Staged Packages tab on npmjs.com).

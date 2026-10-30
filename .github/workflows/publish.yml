@@ -1,6 +1,8 @@
 name: Publish
 
-# Publishes to npm via trusted publishing (OIDC): no npm token is stored in the repo.
+# Stages a publish to npm via trusted publishing (OIDC): no npm token is stored in the repo.
+# The release goes live only once a maintainer approves it with 2FA (npm stage approve <id>,
+# or the Staged Packages tab on npmjs.com).
 # Configure the trusted publisher on npmjs.com with workflow filename "publish.yml".
 on:
   push:
@@ -29,4 +31,4 @@ jobs:
           fi
       - run: npm ci
       - run: npm test
-      - run: npm publish
+      - run: npm stage publish
