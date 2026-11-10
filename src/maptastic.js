@@ -1,4 +1,4 @@
-import solve from './solve';
+import solve from './solve.js';
 
 /**
  * @typedef {Object} Config
