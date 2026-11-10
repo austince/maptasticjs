@@ -18,6 +18,7 @@
   "scripts": {
     "build": "rollup --config",
     "clean": "rimraf dist",
+    "prepare": "node -e \"require('fs').existsSync('dist/maptastic.js') || require('child_process').execSync('npm run build', { stdio: 'inherit' })\"",
     "prepublishOnly": "npm run clean && npm run build",
     "pretest": "npm run build",
     "test": "node --test \"test/**/*.test.js\"",
