@@ -57,6 +57,18 @@ test('corner-pins elements to their target points', async ({ page }) => {
   expectCorners(await corners(page, 'b'), rect(500, 400, 200, 100));
 });
 
+test('layers added by the constructor start where their elements sit in the page', async ({ page }) => {
+  await page.setContent(PAGE);
+  await page.addScriptTag({ path: BUNDLE });
+  // 'a' is added first and leaves the page flow, which used to pull 'b' up to the top.
+  await page.evaluate(() => {
+    window.maptastic = new window.maptastic.Maptastic({ autoLoad: false, autoSave: false }, 'a', 'b');
+  });
+
+  expectCorners(await corners(page, 'a'), rect(0, 0, 200, 100));
+  expectCorners(await corners(page, 'b'), rect(0, 100, 200, 100));
+});
+
 test('shift+space shows and hides the config canvas', async ({ page }) => {
   await setup(page, { a: rect(0, 0, 200, 100), b: rect(300, 0, 200, 100) });
   const canvas = page.locator('canvas');
