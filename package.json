@@ -2,6 +2,7 @@
   "name": "maptastic",
   "version": "3.2.0",
   "main": "dist/maptastic.js",
+  "module": "src/maptastic.js",
   "types": "types/maptastic.d.ts",
   "license": "SEE LICENSE IN license.txt",
   "author": "ben purdy (https://github.com/benpurdy)",
