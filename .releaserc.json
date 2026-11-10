@@ -1,0 +1,16 @@
+{
+  "branches": ["master"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/npm", { "npmPublish": false }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "npm run build",
+        "publishCmd": "npm stage publish"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
