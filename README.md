@@ -2,7 +2,7 @@
 
 Javascript/CSS projection mapping utility with zero dependencies.  Put your internets on things!
 
-![maptastic animation](https://glowbox.github.io/maptasticjs/images/maptastic.gif "Maptastic JS")
+![maptastic animation](https://austince.github.io/maptasticjs/images/maptastic.gif "Maptastic JS")
 
 __note__:
 The original author has been busy and non-responsive so this fork will serve as a way to keep the project updated.
@@ -12,7 +12,7 @@ If the author reaches out to me, I will be more than happy to go back to the [or
 
 When you include `maptastic.js` in your page, a new class `maptastic.Maptastic` is defined. The first step is to instantiate Maptastic, which can be done a couple of different ways depending on your needs. For most simple cases, this only requires a _single line of code_.
 
-[SHOW ME THE DEMO](https://glowbox.github.io/maptasticjs/example/index.html)
+[SHOW ME THE DEMO](https://austince.github.io/maptasticjs/example/index.html)
 
 ```html
     <html>

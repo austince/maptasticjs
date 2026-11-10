@@ -32,11 +32,40 @@ ALT + Arrow keys:   rotate/scale selected quad
 'v':                Flip selected layer vertically
 'b':                Show/Hide projector bounds
 	</pre>
-	<iframe src="//player.vimeo.com/video/108531008" width="500" height="281" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen id="video-test"></iframe>
+	<canvas id="canvas-test" width="500" height="281"></canvas>
 
 	<script src="../dist/maptastic.js"></script>
 	<script>
-		new maptastic.Maptastic("video-test", "controls");
+		// Animated content to map: a color wheel with a rotating bar.
+		var canvas = document.getElementById("canvas-test");
+		var ctx = canvas.getContext("2d");
+		var t = 0;
+
+		function draw() {
+			var w = canvas.width;
+			var h = canvas.height;
+			ctx.fillStyle = "#202020";
+			ctx.fillRect(0, 0, w, h);
+
+			for (var i = 0; i < 12; i++) {
+				var angle = (i / 12) * Math.PI * 2 + t;
+				ctx.fillStyle = "hsl(" + (i * 30 + t * 60) % 360 + ", 80%, 55%)";
+				ctx.beginPath();
+				ctx.arc(w / 2 + Math.cos(angle) * 90, h / 2 + Math.sin(angle) * 90, 24, 0, Math.PI * 2);
+				ctx.fill();
+			}
+
+			ctx.strokeStyle = "white";
+			ctx.lineWidth = 4;
+			ctx.strokeRect(2, 2, w - 4, h - 4);
+
+			t += 0.02;
+			window.requestAnimationFrame(draw);
+		}
+
+		draw();
+
+		new maptastic.Maptastic("canvas-test", "controls");
 	</script>
 </body>
 
