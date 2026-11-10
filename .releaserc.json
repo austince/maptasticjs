@@ -1,0 +1,33 @@
+{
+  "branches": ["master"],
+  "repositoryUrl": "git@github.com:austince/maptasticjs.git",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
+    ["@semantic-release/npm", { "npmPublish": false }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "npm run build",
+        "publishCmd": "npm stage publish"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "package.json", "package-lock.json"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "dist/maptastic.js", "label": "maptastic.js (UMD bundle)" },
+          { "path": "dist/maptastic.js.map", "label": "maptastic.js.map (source map)" }
+        ]
+      }
+    ]
+  ]
+}

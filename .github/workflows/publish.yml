@@ -1,34 +1,57 @@
 name: Publish
 
-# Stages a publish to npm via trusted publishing (OIDC): no npm token is stored in the repo.
-# The release goes live only once a maintainer approves it with 2FA (npm stage approve <id>,
-# or the Staged Packages tab on npmjs.com).
+# Run manually (Actions tab > Publish > Run workflow, or `gh workflow run publish.yml`) when you
+# want a release. semantic-release reads every conventional commit on master since the last tag,
+# picks the next version, tags it, commits the version and CHANGELOG.md back to master (over SSH
+# with a deploy key, since master is protected), creates
+# the GitHub release, and stages the package on npm via trusted publishing (OIDC): no npm token
+# is stored in the repo. The release goes live only once a maintainer approves it with 2FA
+# (npm stage approve <id>, or the Staged Packages tab on npmjs.com).
 # Configure the trusted publisher on npmjs.com with workflow filename "publish.yml".
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Show the next version and release notes without releasing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
   publish:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    # The deploy key is an environment secret, so only this job can use it. Restrict the
+    # environment to the master branch in the repository settings.
+    environment: release
+    permissions:
+      contents: write # GitHub releases
+      issues: write
+      pull-requests: write
+      id-token: write # npm trusted publishing
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # semantic-release reads the full history and tags
+          # A write-enabled deploy key that is on the master ruleset's bypass list. The default
+          # GITHUB_TOKEN cannot bypass branch protection, so the version commit and tag are
+          # pushed over SSH with this key.
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          persist-credentials: true # semantic-release reuses these credentials to push
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - name: Check tag matches package.json version
-        run: |
-          version="$(node -p 'require("./package.json").version')"
-          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
-            exit 1
-          fi
       - run: npm ci
       - run: npm test
-      - run: npm stage publish
+      - name: Release
+        run: npx semantic-release ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

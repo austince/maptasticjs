@@ -188,15 +188,20 @@ npx playwright install
 npm run test:browser
 ```
 
-`dist/` is committed; CI fails if it doesn't match a fresh `npm run build`.
+`dist/` is not committed. Run `npm run build` before opening the files in `example/`, which load `../dist/maptastic.js`.
 
 ### Releasing
 
-Releases are staged to npm from GitHub Actions ([`publish.yml`](.github/workflows/publish.yml)) via
-[trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere,
-and go live only after a maintainer approves them ([staged publishing](https://docs.npmjs.com/staged-publishing)).
+Releases are made by [semantic-release](https://github.com/semantic-release/semantic-release) from GitHub Actions
+([`publish.yml`](.github/workflows/publish.yml)). Commits build up on `master`; when you want a release, run the
+Publish workflow from the Actions tab (or `gh workflow run publish.yml`), optionally with `dry_run` checked to preview
+the next version first. Write commit messages in the
+[Conventional Commits](https://www.conventionalcommits.org/) format: `fix:` makes a patch release, `feat:` a minor
+release, and a `!` after the type (or a `BREAKING CHANGE:` footer) a major release. Other types, such as `docs:`,
+`test:`, and `ci:`, do not release. Do not bump the version in `package.json` by hand.
 
-1. Bump the version: `npm version <patch|minor|major>` (commits and creates the `vX.Y.Z` tag).
-2. Push the commit and tag: `git push --follow-tags`.
-3. Once the workflow finishes, approve the release with 2FA: `npm stage list maptastic`, then
-   `npm stage approve <stage-id>` (or use the Staged Packages tab on npmjs.com).
+When there are releasable commits since the last tag, the workflow commits the new version and `CHANGELOG.md` back to
+`master`, tags the release, creates the GitHub release (with the built `dist/maptastic.js` and its source map
+attached), and stages the package on npm via [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
+The release goes live only after a maintainer approves it with 2FA ([staged publishing](https://docs.npmjs.com/staged-publishing)):
+run `npm stage list maptastic`, then `npm stage approve <stage-id>` (or use the Staged Packages tab on npmjs.com).
