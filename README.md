@@ -45,6 +45,8 @@ import { Maptastic } from 'maptastic';
 const map = new Maptastic("so-simple");
 ```
 
+TypeScript definitions are included in the package, so no `@types` package is needed.
+
 ## Controls
 
 Since the idea is to have a projector aimed all crazy-like, the controls are all keyboard and mouse based since any UI would either get in the way, or would be impossible to see in most cases anyway.

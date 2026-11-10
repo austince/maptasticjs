@@ -19,6 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run test:types
       - name: Check dist/ is up to date
         run: |
           if ! git diff --exit-code --stat -- dist; then
