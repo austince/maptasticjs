@@ -188,7 +188,7 @@ npx playwright install
 npm run test:browser
 ```
 
-`dist/` is committed; CI fails if it doesn't match a fresh `npm run build`.
+`dist/` is not committed. Run `npm run build` before opening the files in `example/`, which load `../dist/maptastic.js`.
 
 ### Releasing
 

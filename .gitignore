@@ -39,3 +39,6 @@ typings/
 # Playwright
 test-results/
 playwright-report/
+
+# Build output (published from CI)
+dist/
