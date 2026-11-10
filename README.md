@@ -193,12 +193,14 @@ npm run test:browser
 ### Releasing
 
 Releases are made by [semantic-release](https://github.com/semantic-release/semantic-release) from GitHub Actions
-([`publish.yml`](.github/workflows/publish.yml)) on every push to `master`. Write commit messages in the
+([`publish.yml`](.github/workflows/publish.yml)). Commits build up on `master`; when you want a release, run the
+Publish workflow from the Actions tab (or `gh workflow run publish.yml`), optionally with `dry_run` checked to preview
+the next version first. Write commit messages in the
 [Conventional Commits](https://www.conventionalcommits.org/) format: `fix:` makes a patch release, `feat:` a minor
 release, and a `!` after the type (or a `BREAKING CHANGE:` footer) a major release. Other types, such as `docs:`,
 `test:`, and `ci:`, do not release. Do not bump the version in `package.json` by hand.
 
-When a push contains a releasable commit, the workflow tags the release, creates the GitHub release, and stages the
-package on npm via [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
+When there are releasable commits since the last tag, the workflow commits the new version and `CHANGELOG.md` back to
+`master`, tags the release, creates the GitHub release, and stages the package on npm via [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
 The release goes live only after a maintainer approves it with 2FA ([staged publishing](https://docs.npmjs.com/staged-publishing)):
 run `npm stage list maptastic`, then `npm stage approve <stage-id>` (or use the Staged Packages tab on npmjs.com).
