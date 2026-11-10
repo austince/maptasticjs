@@ -238,11 +238,24 @@ class Maptastic {
     // if the config was just an element or string, interpret it as a layer to add.
     const potentialLayerTargets = layerList.concat(targets, [configOrTarget]);
 
+    // Adding a layer takes its element out of the page flow, which moves the elements after it.
+    // Measure every starting position first so each layer starts where its element sits in the page.
+    /** @type {Map<HTMLElement, Point> | null} */
+    this.startOffsets = new Map();
+    for (var i = 0; i < potentialLayerTargets.length; i++) {
+      const target = potentialLayerTargets[i];
+      const element = typeof (target) === 'string' ? document.getElementById(target) : target;
+      if (element instanceof HTMLElement) {
+        this.startOffsets.set(element, [element.offsetLeft, element.offsetTop]);
+      }
+    }
+
     for (var i = 0; i < potentialLayerTargets.length; i++) {
       if ((potentialLayerTargets[i] instanceof HTMLElement) || (typeof (potentialLayerTargets[i]) === 'string')) {
         this.addLayer(potentialLayerTargets[i]);
       }
     }
+    this.startOffsets = null;
 
     const autoLoad = getProp(configOrTarget, 'autoLoad', true);
     if (autoLoad) {
@@ -772,8 +785,8 @@ class Maptastic {
       }
     }
 
-    const offsetX = element.offsetLeft;
-    const offsetY = element.offsetTop;
+    const [offsetX, offsetY] = (this.startOffsets && this.startOffsets.get(element))
+      || [element.offsetLeft, element.offsetTop];
 
     element.style.position = 'fixed';
     element.style.display = 'block';
