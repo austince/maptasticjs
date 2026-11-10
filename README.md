@@ -201,6 +201,7 @@ release, and a `!` after the type (or a `BREAKING CHANGE:` footer) a major relea
 `test:`, and `ci:`, do not release. Do not bump the version in `package.json` by hand.
 
 When there are releasable commits since the last tag, the workflow commits the new version and `CHANGELOG.md` back to
-`master`, tags the release, creates the GitHub release, and stages the package on npm via [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
+`master`, tags the release, creates the GitHub release (with the built `dist/maptastic.js` and its source map
+attached), and stages the package on npm via [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere.
 The release goes live only after a maintainer approves it with 2FA ([staged publishing](https://docs.npmjs.com/staged-publishing)):
 run `npm stage list maptastic`, then `npm stage approve <stage-id>` (or use the Staged Packages tab on npmjs.com).
